@@ -1,0 +1,83 @@
+// Section 7 — Radio and passage: modules 7.1–7.2.
+(() => {
+'use strict';
+const SA = window.SA, D = SA.draw;
+const R = (ru, en) => ({ ru, en });
+const ru = () => SA.lang === 'ru';
+const T = (sec, rn, rd, en, ed) => ({ sec, ru: [rn, rd], en: [en, ed] });
+SA.addTerms({
+  securite: T('safety', 'SÉCURITÉ', 'Сообщение о безопасности мореплавания: опасность на воде, погасший огонь, штормовое предупреждение.', 'SÉCURITÉ', 'A safety message: a hazard in the water, an unlit light, a gale warning.'),
+  mmsi: T('safety', 'MMSI', 'Девятизначный номер радиостанции судна для DSC и АИС.', 'MMSI', 'A vessel’s nine-digit radio identity for DSC and AIS.'),
+  prowords: T('safety', 'Процедурные слова', 'Over — приём, Out — конец связи, Say again — повторите, Roger — понял.', 'Prowords', 'Over, Out, Say again, Roger and other standard radio words.'),
+  src: T('rules', 'Сертификат оператора УКВ', 'Документ на право работы на судовой УКВ-радиостанции (например, SRC). Требуется вместе с разрешением на станцию.', 'Radio operator certificate', 'The licence to operate a marine VHF, such as the SRC, needed alongside the ship’s radio licence.'),
+  pilotage: T('nav', 'Лоцманский план', 'План входа в гавань: ориентиры, створы, ограждающие пеленги, глубины и момент поворотов.', 'Pilotage plan', 'A harbour entry plan: marks, transits, clearing bearings, depths and turning points.'),
+  clearing: T('nav', 'Ограждающий пеленг', 'Пеленг на ориентир, который нельзя «пересекать»: пока пеленг больше (или меньше) заданного, опасность в стороне.', 'Clearing bearing', 'A bearing you must not cross: while it stays above (or below) the limit, you are clear of the danger.'),
+  refuge: T('nav', 'Порт-убежище', 'Запасная гавань по маршруту на случай ухудшения погоды, поломки или усталости экипажа.', 'Port of refuge', 'An alternative harbour on the route in case of bad weather, breakdown or a tired crew.'),
+  tidegate: T('nav', 'Приливные ворота', 'Место на маршруте, которое проходят только в определённое время: мелкий бар, мыс с сильным течением.', 'Tidal gate', 'A point on the route that can only be passed at certain times, such as a bar or a headland with strong streams.')
+});
+const channelsTable = () => `<table class="tbl"><thead><tr><th>${ru() ? 'Канал' : 'Channel'}</th><th>${ru() ? 'Назначение' : 'Use'}</th></tr></thead><tbody>
+  <tr><td class="mono">16</td><td>${ru() ? 'Бедствие, срочность, безопасность и вызов. Слушать постоянно.' : 'Distress, urgency, safety and calling. Monitor at all times.'}</td></tr>
+  <tr><td class="mono">70</td><td>${ru() ? 'Только цифровые вызовы DSC, голосом не работают.' : 'DSC data only, no voice.'}</td></tr>
+  <tr><td class="mono">6, 8, 72, 77</td><td>${ru() ? 'Связь между судами.' : 'Ship to ship.'}</td></tr>
+  <tr><td class="mono">${ru() ? 'по лоции' : 'per almanac'}</td><td>${ru() ? 'Порты, марины, службы движения: каналы указаны в лоции и на карте.' : 'Ports, marinas and VTS: see the almanac and chart.'}</td></tr></tbody></table>`;
+const planTable = () => `<table class="tbl"><thead><tr><th>${ru() ? 'Пункт' : 'Item'}</th><th>${ru() ? 'Что проверить' : 'What to check'}</th></tr></thead><tbody>
+  ${(ru() ? [['Погода', 'Прогноз на весь переход и сутки после, тренд давления'], ['Приливы и течения', 'Время выхода под попутное течение, приливные ворота'], ['Маршрут', 'Курсы и расстояния, путевые точки, опасности, глубины'], ['Убежища', 'Порты-убежища по пути, их входы при разном ветре'], ['Экипаж', 'Опыт, усталость, вахты, укачивание'], ['Яхта', 'Топливо, вода, газ, снабжение, огни на ночь'], ['Вход в порт', 'Лоцманский план, каналы УКВ, правила марины'], ['На берегу', 'План рейса оставлен, время возвращения']] : [['Weather', 'Forecast for the passage and the day after, pressure trend'], ['Tides and streams', 'Departure time for a fair tide, tidal gates'], ['Route', 'Courses and distances, waypoints, dangers, depths'], ['Refuges', 'Ports of refuge, their entrances in different winds'], ['Crew', 'Experience, fatigue, watches, seasickness'], ['Boat', 'Fuel, water, gas, safety gear, lights for night'], ['Arrival', 'Pilotage plan, VHF channels, marina rules'], ['Ashore', 'Float plan left, expected return time']]).map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>`;
+const clearingFig = () => `<svg viewBox="0 0 420 240" role="img" aria-label="${ru() ? 'Ограждающий пеленг' : 'Clearing bearing'}">
+  <path d="M0,0 H420 V60 Q300,90 200,70 T0,80Z" fill="var(--warn)" opacity=".35"/>
+  <path d="M330,40 l7,-14 l7,14z" fill="var(--ink)"/>${D.txt(337, 22, ru() ? 'маяк' : 'light', { fs: 12 })}
+  <path d="M120,150 l10,10 m0,-10 l-10,10" stroke="var(--bad)" stroke-width="3"/>${D.txt(126, 182, ru() ? 'камни' : 'rocks', { fs: 12, fill: 'var(--bad)' })}
+  <path d="M337,40 L40,230" stroke="var(--bad)" stroke-width="2" stroke-dasharray="8 6"/>
+  ${D.txt(150, 120, ru() ? 'не больше 060°' : 'not more than 060°', { fs: 13, fill: 'var(--bad)' })}
+  ${D.boat(280, 170, 330, { s: .6 })}${D.txt(300, 220, ru() ? 'пеленг < 060° — вы в безопасности' : 'bearing < 060°: you are safe', { fs: 12, w: 500 })}
+</svg>`;
+
+SA.MODULES['7.1'] = {
+  title: R('УКВ-радиосвязь и сигналы бедствия', 'VHF radio and distress calls'),
+  lead: R('Каналы, порядок вызова, процедурные слова и что делать с ложным сигналом бедствия.', 'Channels, calling procedure, prowords and what to do about a false distress alert.'),
+  goals: [R('выбрать канал для вызова, разговора и бедствия;', 'choose the channel for calling, talking and distress;'), R('вызвать другое судно и марину;', 'call another vessel and a marina;'), R('различать MAYDAY, PAN-PAN и SÉCURITÉ;', 'tell MAYDAY, PAN-PAN and SÉCURITÉ apart;'), R('отменить ложный сигнал DSC.', 'cancel a false DSC alert.')],
+  cards: [
+    { h: R('Каналы и радиостанция', 'Channels and the set'), table: channelsTable,
+      body: R('<p>УКВ-радио на яхте — главная связь с берегом и судами. Дальность — прямая видимость антенны: с яхты на яхту 10–15 миль, на береговую станцию больше. Мощность 25 Вт для дальних вызовов и 1 Вт для близких. Радио с [[dsc|ЦИВ]] связано с GPS и имеет номер [[mmsi|MMSI]].</p><p>Для работы нужны разрешение на судовую станцию и [[src|сертификат оператора]].</p>', '<p>A VHF is the yacht’s main link with the shore and other vessels. Range is line of sight: 10–15 miles yacht to yacht, further to a coast station. Use 25 W for distance and 1 W close by. A [[dsc|DSC]] set is connected to GPS and has an [[mmsi|MMSI]].</p><p>You need a ship radio licence and an [[src|operator certificate]].</p>') },
+    { h: R('Порядок вызова', 'Calling procedure'),
+      body: R('<p>Послушайте, свободен ли канал. Вызов: «Яхта «Альбатрос», «Альбатрос», это яхта «Чайка», «Чайка», приём». После ответа переходите на рабочий канал. [[prowords|Процедурные слова]]: Over — приём, Out — конец связи, Say again — повторите, Roger — понял. Буквы передают фонетическим алфавитом — он есть в справочнике.</p>', '<p>Listen first to check the channel is clear. Call: “Albatross, Albatross, this is Seagull, Seagull, over.” After the reply, switch to a working channel. [[prowords|Prowords]]: Over, Out, Say again, Roger. Spell with the phonetic alphabet, which is in the Reference section.</p>'),
+      check: { q: R('Вызвали судно на 16 канале, оно ответило. Что дальше?', 'You called a vessel on 16 and it answered. What next?'), o: [R('Перейти на рабочий канал', 'Move to a working channel'), R('Разговаривать на 16', 'Talk on 16')], a: 0, e: R('16 держат свободным для бедствия.', 'Keep 16 clear for distress.') } },
+    { h: R('Бедствие, срочность, безопасность', 'Distress, urgency, safety'),
+      body: R('<p>[[mayday|MAYDAY]] — угроза жизни или судну. [[panpan|PAN-PAN]] — срочно, но без прямой угрозы. [[securite|SÉCURITÉ]] — информация о безопасности. При бедствии сначала кнопка Distress на 5 секунд, затем голосом на 16 канале по шаблону из модуля 2.2.</p><p>Ложный сигнал: сразу выключите радио, включите и на 16 канале отмените: «Всем станциям ×3, это яхта… MMSI… отменяю мой сигнал бедствия от … UTC». За отмену не наказывают, за молчание — могут.</p>', '<p>[[mayday|MAYDAY]] means danger to life or the vessel. [[panpan|PAN-PAN]] is urgent without immediate danger. [[securite|SÉCURITÉ]] is safety information. In distress, first hold the Distress button 5 seconds, then speak on 16 using the template from module 2.2.</p><p>False alert: switch off, switch on and cancel on 16: “All stations ×3, this is yacht… MMSI… cancel my distress alert of … UTC.” Cancelling is never penalised; staying silent may be.</p>') }
+  ],
+  sims: ['vhf'],
+  water: [{ h: R('Что отработать', 'What to practise'), li: [R('Вызвать марину на её канале и запросить место.', 'Call a marina on its channel and ask for a berth.'), R('Найти MMSI и меню DSC на радиостанции учебной яхты.', 'Find the MMSI and the DSC menu on the training yacht’s set.')] }],
+  quiz: [
+    { q: R('Какой канал слушают постоянно?', 'Which channel do you monitor at all times?'), o: [R('16', '16'), R('72', '72'), R('6', '6')], a: 0, e: R('Канал бедствия и вызова.', 'The distress and calling channel.') },
+    { q: R('Что значит Out?', 'What does “Out” mean?'), o: [R('Конец связи', 'End of the exchange'), R('Приём', 'Your turn to talk'), R('Повторите', 'Say again')], a: 0, e: R('Over and out вместе не говорят.', 'Never “over and out”.') },
+    { q: R('Какой вызов о дрейфующем бревне на фарватере?', 'Which call for a floating log in the fairway?'), o: [R('SÉCURITÉ', 'SÉCURITÉ'), R('MAYDAY', 'MAYDAY'), R('PAN-PAN', 'PAN-PAN')], a: 0, e: R('Это информация о безопасности.', 'It is safety information.') },
+    { q: R('Что делать после ложного сигнала DSC?', 'What do you do after a false DSC alert?'), o: [R('Отменить голосом на 16 канале', 'Cancel by voice on 16'), R('Промолчать', 'Stay silent'), R('Подать ещё раз', 'Send another')], a: 0, e: R('Иначе начнётся спасательная операция.', 'Otherwise a rescue will be launched.') },
+    { q: R('Какая дальность УКВ между яхтами?', 'Typical VHF range yacht to yacht?'), o: [R('10–15 миль', '10–15 miles'), R('100 миль', '100 miles'), R('1 миля', '1 mile')], a: 0, e: R('Ограничена прямой видимостью антенн.', 'It is limited to line of sight.') },
+    { q: R('Что нужно для работы на судовой радиостанции?', 'What do you need to operate a marine VHF?'), o: [R('Разрешение на станцию и сертификат оператора', 'A ship licence and an operator certificate'), R('Ничего', 'Nothing'), R('Только паспорт', 'Only a passport')], a: 0, e: R('Требования зависят от страны.', 'Requirements depend on the country.') }
+  ]
+};
+
+SA.MODULES['7.2'] = {
+  title: R('Планирование перехода', 'Passage planning'),
+  lead: R('Как собрать всё изученное в план: погода, приливы, маршрут, убежища, экипаж и вход в порт.', 'How to bring everything together into a plan: weather, tides, route, refuges, crew and arrival.'),
+  goals: [R('составить план перехода по списку;', 'draw up a passage plan from a checklist;'), R('выбрать время выхода с учётом течений;', 'choose a departure time using the streams;'), R('подготовить лоцманский план входа;', 'prepare a pilotage plan;'), R('принять решение «идём / не идём».', 'make a go / no-go decision.')],
+  cards: [
+    { h: R('Четыре шага', 'Four steps'), table: planTable,
+      body: R('<p>Планирование: оценить (собрать информацию), спланировать (маршрут и время), выполнить, контролировать (сверять место и план, менять его, если что-то пошло не так). Шкипер обязан планировать любой выход — это часть [[dutycare|обязанности заботиться]].</p>', '<p>Planning means: appraise (gather information), plan (route and timing), execute, monitor (compare position with the plan and change it if things go wrong). A skipper must plan every trip: it is part of the [[dutycare|duty of care]].</p>') },
+    { h: R('Время и течения', 'Timing and streams'),
+      body: R('<p>Посчитайте расстояние и среднюю скорость (для учебной яхты обычно 5 узлов). Найдите [[tidegate|приливные ворота]] — мелкий бар или мыс с сильным течением — и подберите время выхода, чтобы пройти их в нужный момент. Запланируйте [[refuge|порты-убежища]] и приход засветло, если гавань незнакомая.</p>', '<p>Work out distance and an average speed (about 5 knots for a training yacht). Identify [[tidegate|tidal gates]], such as a shallow bar or a headland with strong streams, and choose a departure time to pass them at the right moment. Plan [[refuge|ports of refuge]] and arrive in daylight if the harbour is new to you.</p>'),
+      check: { q: R('Переход 30 миль, скорость 5 узлов, нужно прийти к 17:00. Когда выходить?', 'A 30-mile passage at 5 knots, arriving by 17:00. When do you leave?'), o: [R('Не позже 11:00, лучше с запасом', 'By 11:00 at the latest, preferably earlier'), R('В 15:00', 'At 15:00'), R('В 16:00', 'At 16:00')], a: 0, e: R('30 / 5 = 6 часов, плюс запас на непредвиденное.', '30 / 5 = 6 hours, plus a margin.') } },
+    { h: R('Лоцманский план', 'Pilotage plan'), fig: clearingFig,
+      body: R('<p>У входа в гавань на карту смотреть некогда. [[pilotage|Лоцманский план]] готовят заранее: схема входа, ориентиры и буи по порядку, [[transit|створы]], [[clearing|ограждающие пеленги]], глубины, где поворачивать, канал УКВ марины. Его держат в кокпите на одном листе.</p><p>Решение «не идём» — тоже хорошее решение. Если прогноз хуже, чем позволяет опыт экипажа, или яхта не готова, переход откладывают.</p>', '<p>At a harbour entrance there is no time to study the chart. Prepare a [[pilotage|pilotage plan]] in advance: a sketch of the entrance, marks and buoys in order, [[transit|transits]], [[clearing|clearing bearings]], depths, turning points, the marina’s VHF channel. Keep it on one sheet in the cockpit.</p><p>“We are not going” is a good decision too. If the forecast is beyond the crew’s experience or the boat is not ready, postpone.</p>') }
+  ],
+  water: [{ h: R('Что сделать', 'What to do'), li: [R('Составить план учебного перехода на день и обсудить его с инструктором.', 'Plan a day passage for the training cruise and discuss it with your instructor.'), R('Нарисовать лоцманский план входа в вашу марину.', 'Draw a pilotage plan for entering your marina.')] }],
+  quiz: [
+    { q: R('Какие четыре шага планирования?', 'What are the four steps of planning?'), o: [R('Оценить, спланировать, выполнить, контролировать', 'Appraise, plan, execute, monitor'), R('Выйти, идти, прийти, отдыхать', 'Leave, sail, arrive, rest'), R('Только маршрут', 'Only the route')], a: 0, e: R('Контроль — сверять место с планом.', 'Monitoring means comparing position with the plan.') },
+    { q: R('Что такое приливные ворота?', 'What is a tidal gate?'), o: [R('Место, которое проходят только в определённое время', 'A point passable only at certain times'), R('Ворота в марине', 'A marina gate'), R('Шлюз', 'A lock')], a: 0, e: R('Мелкий бар или мыс с сильным течением.', 'A shallow bar or a headland with strong streams.') },
+    { q: R('Зачем нужен ограждающий пеленг?', 'What is a clearing bearing for?'), o: [R('Показать границу безопасной воды', 'To mark the edge of safe water'), R('Для вызова по радио', 'For a radio call'), R('Для якоря', 'For anchoring')], a: 0, e: R('Пока пеленг в пределах, опасность в стороне.', 'While the bearing is within limits, you are clear.') },
+    { q: R('Средняя скорость учебной яхты для плана?', 'A planning speed for a training yacht?'), o: [R('Около 5 узлов', 'About 5 knots'), R('15 узлов', '15 knots'), R('1 узел', '1 knot')], a: 0, e: R('С запасом на ветер и течение.', 'With a margin for wind and tide.') },
+    { q: R('Что такое порт-убежище?', 'What is a port of refuge?'), o: [R('Запасная гавань по маршруту', 'An alternative harbour on the route'), R('Порт назначения', 'The destination'), R('Порт выхода', 'The departure port')], a: 0, e: R('На случай погоды, поломки или усталости.', 'For weather, breakdown or fatigue.') },
+    { q: R('Прогноз 7 баллов, экипаж новичков. Решение?', 'Force 7 forecast, a novice crew. Decision?'), o: [R('Отложить переход', 'Postpone'), R('Выйти, чтобы потренироваться', 'Go for the practice'), R('Выйти без рифов', 'Go without reefing')], a: 0, e: R('«Не идём» — тоже правильное решение.', 'Not going is also a good decision.') },
+    { type: 'order', q: R('Расставьте подготовку к переходу по порядку.', 'Put passage preparation in order.'), steps: [R('Прогноз погоды', 'Weather forecast'), R('Приливы, течения, время выхода', 'Tides, streams and departure time'), R('Маршрут, опасности, убежища', 'Route, dangers, refuges'), R('Лоцманский план входа', 'Pilotage plan for arrival'), R('Инструктаж экипажа и план рейса на берегу', 'Crew briefing and float plan ashore')], e: R('Сначала решаем, идём ли вообще, потом — как.', 'First decide whether to go, then how.') }
+  ]
+};
+})();

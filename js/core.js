@@ -24,7 +24,17 @@ const ru = () => SA.lang === 'ru';
 // ---------- UI strings ----------
 const UI = SA.UI = {
   brand: { ru: 'Яхтенная школа', en: 'Sailing Academy' },
-  nav: { home: { ru: 'Курс', en: 'Course' }, glossary: { ru: 'Словарь', en: 'Glossary' }, resources: { ru: 'Справочник', en: 'Reference' } },
+  nav: { home: { ru: 'Курс', en: 'Course' }, final: { ru: 'Итоговый тест', en: 'Final test' }, glossary: { ru: 'Словарь', en: 'Glossary' }, resources: { ru: 'Справочник', en: 'Reference' } },
+  fin: {
+    h: { ru: 'Итоговый тест', en: 'Final test' },
+    p: { ru: (n, k) => `${n} вопросов — по одному из каждого модуля курса, каждый раз новый набор. Ответы и объяснения появятся после сдачи. Зачёт — ${k} верных ответов (80%). Рекомендуемое время — 45 минут. Это учебный тест: он показывает готовность к теоретическому экзамену ГИМС, но не заменяет его.`, en: (n, k) => `${n} questions, one from every module of the course, a new set each time. Answers and explanations appear after you submit. Pass mark: ${k} correct (80%). Suggested time: 45 minutes. This is a practice test: it shows whether you are ready for the IYT Day Skipper theory assessment, but does not replace it.` },
+    left: { ru: (n) => `Осталось ответить: ${n}`, en: (n) => `Still to answer: ${n}` },
+    submit: { ru: 'Сдать тест', en: 'Submit' }, again: { ru: 'Новый вариант', en: 'New set of questions' },
+    pass: { ru: 'Тест сдан. Теория курса освоена: можно готовиться к экзамену ГИМС вместе с инструктором.', en: 'Passed. You know the course theory and are ready to prepare for the IYT Day Skipper assessment with your instructor.' },
+    fail: { ru: 'Пока не сдан. Повторите модули, где были ошибки, и попробуйте новый вариант.', en: 'Not passed yet. Review the modules where you made mistakes and try a new set.' },
+    bySec: { ru: 'По разделам', en: 'By section' }, errs: { ru: 'Разбор ошибок', en: 'Review your mistakes' }, best: { ru: 'Лучший результат', en: 'Best score' },
+    card: { ru: 'Проверьте себя по всему курсу: 30 вопросов, зачёт — 80%.', en: 'Test yourself on the whole course: 30 questions, pass mark 80%.' }, go: { ru: 'Пройти итоговый тест', en: 'Take the final test' }, open: { ru: 'К модулю', en: 'Open module' }
+  },
   track: { ru: 'Трек: ГИМС', en: 'Track: IYT Day Skipper' },
   homeH: { ru: 'Теория для яхтсмена: от новичка до шкипера', en: 'Theory for sailors: from beginner to skipper' },
   homeP: { ru: 'Короткие уроки со схемами, тренажёры и квизы. Проходите модули по порядку: каждый заканчивается блоком «На воде» с тем, что отработать с инструктором. Русская версия готовит к экзамену ГИМС, английская — к IYT Day Skipper.', en: 'Short lessons with diagrams, simulators and quizzes. Take the modules in order: each ends with an “On the water” block of things to practise with your instructor. The English version prepares you for IYT Day Skipper, the Russian one for the GIMS exam.' },
@@ -108,6 +118,7 @@ function route() {
   if (h === 'home' || h === '') home();
   else if (h === 'glossary') glossary();
   else if (h === 'resources') resources();
+  else if (h === 'final') finalTest();
   else if (h.startsWith('m-')) { const id = h.slice(2).replace(/-/g, '.'); SA.MODULES[id] ? module(id) : home(); }
   else home();
   SA.currentPage = h;
@@ -139,6 +150,7 @@ function home() {
           ${has && pct ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}`;
         return has ? `<a class="mod" href="#m-${m.id.replace('.', '-')}">${inner}</a>` : `<div class="mod soon">${inner}</div>`;
       }).join('')}</div></section>`).join('')}
+    <section class="secblock"><div class="card finalcard"><div><h2>${esc(t(UI.fin.h))}</h2><p>${esc(t(UI.fin.card))}${store.get('final', null) ? ` ${esc(t(UI.fin.best))}: ${store.get('final').best} / ${store.get('final').n}.` : ''}</p></div><a class="btn" style="text-decoration:none" href="#final">${esc(t(UI.fin.go))}</a></div></section>
   </div>`;
 }
 
@@ -248,6 +260,43 @@ function quiz(id) {
       sendQ(ru() ? `Почему я ошибся? Вопрос: «${t(q.q)}». Мой ответ: «${mine}». Правильный: «${right}». Объясни и дай похожую задачу.` : `Why was I wrong? Question: “${t(q.q)}”. My answer: “${mine}”. Correct: “${right}”. Explain and give me a similar problem.`); }
   });
   render();
+}
+
+// ---------- final test ----------
+function finalTest() {
+  document.title = t(UI.fin.h);
+  const mods = allModules().filter((m) => SA.MODULES[m.id]);
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const mix = (n) => { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const QS = mods.map((m) => { const pool = SA.MODULES[m.id].quiz.filter((q) => q.type !== 'order'); return pool.length ? { mod: m, q: pick(pool) } : null; }).filter(Boolean).map((x) => ({ ...x, ord: mix(x.q.o.length) }));
+  const need = Math.ceil(QS.length * 0.8), ans = {};
+  $('main').innerHTML = `<div class="page wrap"><div class="hero"><span class="label">${esc(t(UI.track))}</span><h1>${esc(t(UI.fin.h))}</h1><p>${esc(UI.fin.p[SA.lang](QS.length, need))}</p></div>
+    <div id="finbox" style="display:grid;gap:16px;max-width:820px">${QS.map((x, i) => `<div class="check" data-f="${i}"><span class="label">${i + 1} / ${QS.length} · ${x.mod.id} ${esc(t(x.mod.title))}</span><p><b>${esc(t(x.q.q))}</b></p><div class="opts">${x.ord.map((j) => `<button class="opt" data-fj="${j}" aria-pressed="false">${esc(t(x.q.o[j]))}</button>`).join('')}</div><p class="fb"></p></div>`).join('')}
+      <div class="finbar"><span id="finleft"></span><button class="btn" id="finsub" disabled>${esc(t(UI.fin.submit))}</button></div><div id="finres" style="display:grid;gap:14px"></div></div></div>`;
+  const left = () => { const n = QS.length - Object.keys(ans).length; $('finleft').textContent = UI.fin.left[SA.lang](n); $('finsub').disabled = n > 0; };
+  const box = $('finbox');
+  box.addEventListener('click', (e) => {
+    const o = e.target.closest('[data-fj]');
+    if (o && !box.classList.contains('done')) { const el = o.closest('[data-f]'), i = +el.dataset.f; ans[i] = +o.dataset.fj; el.querySelectorAll('.opt').forEach((b) => b.setAttribute('aria-pressed', String(b === o))); left(); return; }
+    if (e.target.closest('#finsub')) {
+      box.classList.add('done');
+      let right = 0; const sec = {};
+      QS.forEach((x, i) => { const ok = ans[i] === x.q.a, el = box.querySelector(`[data-f="${i}"]`); if (ok) right++;
+        const s = x.mod.sec.n; sec[s] = sec[s] || { t: x.mod.sec.title, r: 0, n: 0 }; sec[s].n++; if (ok) sec[s].r++;
+        el.querySelectorAll('.opt').forEach((b) => { const j = +b.dataset.fj; b.disabled = true; b.classList.toggle('right', j === x.q.a); b.classList.toggle('wrong', j === ans[i] && !ok); });
+        const fb = el.querySelector('.fb'); fb.className = 'fb ' + (ok ? 'ok' : 'no'); fb.innerHTML = (ok ? '✓ ' : '✗ ') + esc(t(x.q.e)) + (ok ? '' : ` <a class="linkbtn" href="#m-${x.mod.id.replace('.', '-')}">${esc(t(UI.fin.open))} ${x.mod.id}</a>`); });
+      const pass = right >= need, prev = store.get('final', null);
+      if (!prev || right > prev.best) store.set('final', { best: right, n: QS.length, pass, at: Date.now() });
+      $('finsub').hidden = true; $('finleft').textContent = '';
+      $('finres').innerHTML = `<div class="card certificate ${pass ? 'ok' : ''}"><p class="score">${esc(UI.result[SA.lang](right, QS.length))}</p><p class="fb ${pass ? 'ok' : 'no'}">${esc(t(pass ? UI.fin.pass : UI.fin.fail))}</p>
+        <span class="label">${esc(t(UI.fin.bySec))}</span><div class="tblwrap"><table class="tbl"><tbody>${Object.keys(sec).map((k) => `<tr><td>${k}. ${esc(t(sec[k].t))}</td><td class="mono">${sec[k].r} / ${sec[k].n}</td></tr>`).join('')}</tbody></table></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="finagain">${esc(t(UI.fin.again))}</button><a class="btn ghost" style="text-decoration:none" href="#home">${esc(t(UI.toCourse))}</a></div></div>`;
+      $('finres').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (e.target.closest('#finagain')) { finalTest(); window.scrollTo(0, 0); }
+  });
+  left();
 }
 
 // ---------- tooltip ----------
