@@ -9,7 +9,7 @@ Interactive learning platform for yacht schools, built on the IYT Day Skipper / 
 - Sailor's reference: Beaufort scale, distress calls, phonetic alphabet, weather, charts, rules and organisations.
 - Progress is saved in the browser (localStorage).
 - "Bosun" (Боцман) AI assistant that sees the current module and simulator state.
-- Two languages, two certification tracks: RU → GIMS, EN → IYT.
+- Two languages (RU, EN) and two certification tracks (GIMS, IYT), switched independently in the header. Module 5.4 and the track-specific texts follow the track; IYT syllabus references on the course map show on the IYT track.
 
 ## Structure
 
