@@ -41,7 +41,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .seg{display:inline-flex;border:1px solid color-mix(in srgb,var(--paper) 40%,transparent);border-radius:999px;overflow:hidden}
 .seg button{background:none;border:0;padding:6px 14px;color:var(--paper);font-family:var(--f-display);font-weight:600;letter-spacing:.06em}
 .seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
-.track{font-family:var(--f-display);font-weight:600;letter-spacing:.05em;padding:5px 12px;border-radius:999px;background:var(--accent);color:#111}
+.trackbox{display:flex;align-items:center;gap:8px}
+.seglbl{font-family:var(--f-display);font-weight:600;letter-spacing:.05em;font-size:.85rem;opacity:.8}
+.trackseg button[aria-pressed="true"]{background:var(--accent);color:#111}
 
 /* shell */
 .shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:40px;padding-block:32px 96px}
