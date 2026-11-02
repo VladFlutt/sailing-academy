@@ -27,6 +27,8 @@ const md = SA.md = (s) => String(t(s) ?? '').replace(/\[\[(\w+)\|([^\]]+)\]\]/g,
 const ru = () => SA.lang === 'ru';
 const iyt = () => SA.track === 'iyt';
 const tk = SA.tk = (o) => t(o[SA.track]); // pick the track's variant, then the language
+// Fisher–Yates permutation of 0..n-1: answer options are stored with the correct one first, so every quiz shows them in this order.
+const mix = SA.mix = (n) => { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------- UI strings ----------
 const UI = SA.UI = {
@@ -206,7 +208,7 @@ function module(id) {
     <section class="col"><div class="sechead"><span class="label">${esc(t(UI.goalsL))}</span></div><ul class="goals">${m.goals.map((g) => `<li>${esc(t(g))}</li>`).join('')}</ul></section>
     <section class="col" id="theory"><div class="sechead"><span class="label">${esc(t(UI.theory))}</span></div>
       ${m.cards.map((c, k) => `<article class="card" id="card-${k}"><span class="num">${String(k + 1).padStart(2, '0')} / ${String(m.cards.length).padStart(2, '0')}</span><h3>${esc(t(c.h))}</h3><div class="body">${md(c.body)}</div>${c.fig ? `<div class="fig" id="fig-${k}">${c.fig()}</div>` : ''}${c.cap ? `<p class="cap" id="cap-${k}">${md(c.cap)}</p>` : ''}${c.table ? `<div class="tblwrap">${c.table()}</div>` : ''}
-        ${c.check ? `<div class="check" data-card="${k}"><span class="label">${esc(t(UI.checkL))}</span><p><b>${esc(t(c.check.q))}</b></p><div class="opts">${c.check.o.map((o, j) => `<button class="opt" data-j="${j}">${esc(t(o))}</button>`).join('')}</div><p class="fb" aria-live="polite"></p></div>` : ''}</article>`).join('')}
+        ${c.check ? `<div class="check" data-card="${k}"><span class="label">${esc(t(UI.checkL))}</span><p><b>${esc(t(c.check.q))}</b></p><div class="opts">${mix(c.check.o.length).map((j) => `<button class="opt" data-j="${j}">${esc(t(c.check.o[j]))}</button>`).join('')}</div><p class="fb" aria-live="polite"></p></div>` : ''}</article>`).join('')}
     </section>
     ${(m.sims || []).map((s) => `<section class="simblock" id="sim-${s}"></section>`).join('')}
     ${m.water ? `<section class="secblock"><div class="sechead"><span class="label">${esc(t(UI.waterL))}</span><h2>${esc(t(UI.waterH))}</h2></div><div class="onwater">${m.water.map((w) => `<div class="card"><h3>${esc(t(w.h))}</h3><ul>${w.li.map((l) => `<li>${md(l)}</li>`).join('')}</ul></div>`).join('')}</div></section>` : ''}
@@ -223,7 +225,7 @@ function module(id) {
     if (hk) { const ok = +hk.dataset.j === m.hook.a; document.querySelectorAll('#hook-opts .opt').forEach((b) => b.classList.remove('right', 'wrong')); hk.classList.add(ok ? 'right' : 'wrong'); const fb = $('hook-fb'); fb.textContent = t(ok ? m.hook.ok : m.hook.no); fb.className = 'fb ' + (ok ? 'ok' : 'no'); return; }
     const ck = e.target.closest('.check[data-card] .opt');
     if (ck) { const box = ck.closest('.check'), c = m.cards[+box.dataset.card].check, j = +ck.dataset.j, ok = j === c.a;
-      box.querySelectorAll('.opt').forEach((b, x) => { b.classList.remove('right', 'wrong'); if (x === c.a && ok) b.classList.add('right'); });
+      box.querySelectorAll('.opt').forEach((b) => { b.classList.remove('right', 'wrong'); if (+b.dataset.j === c.a && ok) b.classList.add('right'); });
       if (!ok) ck.classList.add('wrong');
       const fb = box.querySelector('.fb'); fb.className = 'fb ' + (ok ? 'ok' : 'no'); fb.textContent = (ok ? '✓ ' : '✗ ') + t(c.e); }
   });
@@ -232,21 +234,21 @@ function module(id) {
 
 // ---------- quiz ----------
 function quiz(id) {
-  const m = SA.MODULES[id], QZ = m.quiz; let qa = {}, orders = {};
-  const shuffle = (n) => { const a = [...Array(n).keys()]; do { a.sort(() => Math.random() - 0.5); } while (n > 1 && a.every((v, i) => v === i)); return a; };
+  const m = SA.MODULES[id], QZ = m.quiz; let qa = {}, orders = {}, opts = {};
+  const shuffle = (n) => { let a; do { a = mix(n); } while (n > 1 && a.every((v, i) => v === i)); return a; };
   const box = $('quizbox');
   const render = () => {
-    QZ.forEach((q, i) => { if (q.type === 'order' && !orders[i]) orders[i] = shuffle(q.steps.length); });
+    QZ.forEach((q, i) => { if (q.type === 'order') { if (!orders[i]) orders[i] = shuffle(q.steps.length); } else if (!opts[i]) opts[i] = mix(q.o.length); });
     box.innerHTML = QZ.map((q, i) => {
       const head = `<span class="label">${i + 1} / ${QZ.length}</span><p><b>${esc(t(q.q))}</b></p>${q.fig ? `<div class="fig">${q.fig()}</div>` : ''}`;
       if (q.type === 'order') return `<div class="check" data-q="${i}">${head}<ol class="order">${orders[i].map((s, k) => `<li><span class="mono">${k + 1}.</span><span>${esc(t(q.steps[s]))}</span><button data-mv="-1" aria-label="up">↑</button><button data-mv="1" aria-label="down">↓</button></li>`).join('')}</ol><div><button class="btn" data-ordchk="${i}">${esc(t(UI.check))}</button></div><p class="fb" aria-live="polite"></p></div>`;
-      return `<div class="check" data-q="${i}">${head}<div class="opts">${q.o.map((o, j) => `<button class="opt" data-qj="${j}">${esc(t(o))}</button>`).join('')}</div><p class="fb" aria-live="polite"></p></div>`;
+      return `<div class="check" data-q="${i}">${head}<div class="opts">${opts[i].map((j) => `<button class="opt" data-qj="${j}">${esc(t(q.o[j]))}</button>`).join('')}</div><p class="fb" aria-live="polite"></p></div>`;
     }).join('') + `<div id="qres" style="display:grid;gap:8px"></div>`;
     Object.keys(qa).forEach((i) => paint(+i)); summary();
   };
   const paint = (i) => {
     const q = QZ[i], el = box.querySelector(`[data-q="${i}"]`), fb = el.querySelector('.fb'), ok = qa[i].ok;
-    if (q.type !== 'order') el.querySelectorAll('.opt').forEach((b, k) => { b.disabled = true; b.classList.toggle('right', k === q.a); b.classList.toggle('wrong', k === qa[i].j && !ok); });
+    if (q.type !== 'order') el.querySelectorAll('.opt').forEach((b) => { const k = +b.dataset.qj; b.disabled = true; b.classList.toggle('right', k === q.a); b.classList.toggle('wrong', k === qa[i].j && !ok); });
     fb.className = 'fb ' + (ok ? 'ok' : 'no'); fb.innerHTML = (ok ? '✓ ' : '✗ ') + esc(t(q.e)) + (ok ? '' : ` <button class="linkbtn" data-why="${i}">${esc(t(UI.why))}</button>`);
   };
   const summary = () => {
@@ -262,7 +264,7 @@ function quiz(id) {
     const mv = e.target.closest('[data-mv]');
     if (mv) { const qi = +mv.closest('[data-q]').dataset.q, li = mv.closest('li'), k = [...li.parentNode.children].indexOf(li), n = k + +mv.dataset.mv, ord = orders[qi]; if (n < 0 || n >= ord.length) return; [ord[k], ord[n]] = [ord[n], ord[k]]; delete qa[qi]; render(); return; }
     const oc = e.target.closest('[data-ordchk]'); if (oc) { const i = +oc.dataset.ordchk; qa[i] = { ok: orders[i].every((v, k) => v === k) }; paint(i); summary(); return; }
-    if (e.target.closest('[data-again]')) { qa = {}; orders = {}; render(); return; }
+    if (e.target.closest('[data-again]')) { qa = {}; orders = {}; opts = {}; render(); return; }
     const w = e.target.closest('[data-why]');
     if (w) { const i = +w.dataset.why, q = QZ[i]; openChat();
       const mine = q.type === 'order' ? orders[i].map((s) => t(q.steps[s])).join(' → ') : t(q.o[qa[i].j]);
@@ -277,7 +279,6 @@ function finalTest() {
   document.title = t(UI.fin.h);
   const mods = allModules().filter((m) => SA.MODULES[m.id]);
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const mix = (n) => { const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const QS = mods.map((m) => { const pool = SA.MODULES[m.id].quiz.filter((q) => q.type !== 'order'); return pool.length ? { mod: m, q: pick(pool) } : null; }).filter(Boolean).map((x) => ({ ...x, ord: mix(x.q.o.length) }));
   const need = Math.ceil(QS.length * 0.8), ans = {};
   $('main').innerHTML = `<div class="page wrap"><div class="hero"><span class="label">${esc(tk(UI.track))}</span><h1>${esc(t(UI.fin.h))}</h1><p>${esc(UI.fin.p[SA.lang](QS.length, need))}</p></div>
